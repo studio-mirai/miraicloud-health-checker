@@ -1,60 +1,112 @@
 import { Hono } from "hono";
-import { checkSuiRpcNode, checkSuiValidatorNode } from "./healthChecks/sui";
 import { checkWalrusStorageNode } from "./healthChecks/walrus";
-import { Scheme } from "./types";
-import { DEFAULT_INTERVAL } from "./constants";
+import {
+  DEFAULT_INTERVAL,
+  DEFAULT_ITERATIONS,
+  MAX_ITERATIONS,
+  MIN_ITERATIONS,
+  MIN_INTERVAL,
+  MAX_INTERVAL,
+} from "./constants";
+import { checkSuiRpcNode, checkSuiValidatorNode } from "./healthChecks/sui";
 
 const app = new Hono();
 
-app.get("/sui/rpc/:scheme/:hostname", async (c) => {
-  const scheme = c.req.param("scheme") as Scheme;
-  const hostname = c.req.param("hostname") as string;
-  const interval = Number(c.req.query("interval")) || DEFAULT_INTERVAL;
+export class Network {
+  constructor(
+    public readonly name: string,
+    public readonly services: Service[]
+  ) {}
 
-  const check1 = await checkSuiRpcNode(scheme, hostname);
-  console.log(`${hostname} - ${check1}`);
-  await new Promise((resolve) => setTimeout(resolve, interval));
-  const check2 = await checkSuiRpcNode(scheme, hostname);
-  console.log(`${hostname} - ${check2}`);
+  getService(name: string): Service | undefined {
+    return this.services.find((s) => s.name === name);
+  }
+}
 
-  if (check2 <= check1) {
-    return c.text(`${hostname} is not syncing new checkpoints.`, 503);
+export interface Service {
+  name: string;
+  check: (url: string) => Promise<number>;
+}
+
+export const networks = {
+  sui: new Network("sui", [
+    {
+      name: "rpc",
+      check: checkSuiRpcNode,
+    },
+    {
+      name: "validator",
+      check: checkSuiValidatorNode,
+    },
+  ]),
+  walrus: new Network("walrus", [
+    {
+      name: "storage",
+      check: checkWalrusStorageNode,
+    },
+  ]),
+};
+
+interface HealthCheckRequest {
+  networkName: string;
+  serviceName: string;
+  url: string;
+}
+
+app.post("/", async (c): Promise<Response> => {
+  const body = await c.req.json<HealthCheckRequest>();
+  const { networkName, serviceName, url } = body;
+
+  if (!networkName || !serviceName || !url) {
+    return c.json({ error: "Missing required fields." }, 400);
   }
 
-  return c.text("OK", 200);
-});
+  const network = networks[networkName as keyof typeof networks];
 
-app.get("/sui/validator/:scheme/:hostname", async (c) => {
-  const scheme = c.req.param("scheme") as Scheme;
-  const hostname = c.req.param("hostname") as string;
-  const interval = Number(c.req.query("interval")) || DEFAULT_INTERVAL;
-
-  const check1 = await checkSuiValidatorNode(scheme, hostname);
-  console.log(`${hostname} - ${check1}`);
-  await new Promise((resolve) => setTimeout(resolve, interval));
-  const check2 = await checkSuiValidatorNode(scheme, hostname);
-  console.log(`${hostname} - ${check2}`);
-
-  if (check2 <= check1) {
-    return c.text(`${hostname} is not persisting new events.`, 503);
+  if (!network) {
+    return c.text("Network not supported", 400);
   }
 
-  return c.text("OK", 200);
-});
+  const service = network.getService(serviceName);
 
-app.get("/walrus/storage/:scheme/:hostname", async (c) => {
-  const scheme = c.req.param("scheme") as Scheme;
-  const hostname = c.req.param("hostname") as string;
-  const interval = Number(c.req.query("interval")) || DEFAULT_INTERVAL;
+  if (!service) {
+    return c.text("Service not supported", 400);
+  }
 
-  const check1 = await checkWalrusStorageNode(scheme, hostname);
-  console.log(`${hostname} - ${check1}`);
-  await new Promise((resolve) => setTimeout(resolve, interval));
-  const check2 = await checkWalrusStorageNode(scheme, hostname);
-  console.log(`${hostname} - ${check2}`);
+  let interval = Number(c.req.query("interval")) || DEFAULT_INTERVAL;
+  let iterations = Number(c.req.query("iterations")) || DEFAULT_ITERATIONS;
 
-  if (check2 <= check1) {
-    return c.text(`${hostname} is not persisting new events.`, 503);
+  iterations =
+    Math.min(Math.max(iterations, MIN_ITERATIONS), MAX_ITERATIONS) ||
+    DEFAULT_ITERATIONS;
+
+  interval =
+    Math.min(Math.max(interval, MIN_INTERVAL), MAX_INTERVAL) ||
+    DEFAULT_INTERVAL;
+
+  const healthCheckResults: number[] = [];
+  for (let i = 0; i < iterations; i++) {
+    try {
+      const check = await service.check(url);
+      console.log(check);
+      healthCheckResults.push(check);
+      if (i < iterations - 1) {
+        await new Promise((resolve) => setTimeout(resolve, interval));
+      }
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error(`Health check failed: ${error}`);
+        return c.text(`Health check failed: ${error.message}`, 503);
+      }
+      console.error(`Health check failed: ${String(error)}`);
+      return c.text(`Health check failed: ${String(error)}`, 503);
+    }
+  }
+
+  healthCheckResults.sort((a, b) => a - b);
+
+  if (healthCheckResults.at(-1)! <= healthCheckResults.at(0)!) {
+    return c.text("Service is not healthy", 503);
   }
 
   return c.text("OK", 200);

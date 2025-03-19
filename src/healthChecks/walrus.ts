@@ -40,17 +40,14 @@ interface WalrusStorageNodeResponse {
   };
 }
 
-export async function checkWalrusStorageNode(scheme: string, hostname: string) {
-  const response: WalrusStorageNodeResponse = await ky(
-    `${scheme}://${hostname}/v1/health`,
-    {
-      timeout: 5000,
-      retry: {
-        limit: 3,
-        methods: ["get"],
-      },
-    }
-  ).json();
+export async function checkWalrusStorageNode(url: string): Promise<number> {
+  const response: WalrusStorageNodeResponse = await ky(url, {
+    timeout: 5000,
+    retry: {
+      limit: 3,
+      methods: ["get"],
+    },
+  }).json();
 
   return response.success.data.eventProgress.persisted;
 }

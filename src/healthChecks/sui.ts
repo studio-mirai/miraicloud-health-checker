@@ -1,10 +1,7 @@
 import ky from "ky";
-import { Scheme } from "../types";
-export async function checkSuiRpcNode(
-  scheme: Scheme,
-  hostname: string
-): Promise<number> {
-  const response = await ky(`${scheme}://${hostname}/metrics`, {
+
+export async function checkSuiRpcNode(url: string): Promise<number> {
+  const response = await ky(url, {
     timeout: 5000,
     retry: {
       limit: 3,
@@ -28,11 +25,8 @@ export async function checkSuiRpcNode(
   return parseInt(match[0], 10);
 }
 
-export async function checkSuiValidatorNode(
-  scheme: Scheme,
-  hostname: string
-): Promise<number> {
-  const response = await ky(`${scheme}://${hostname}/metrics`, {
+export async function checkSuiValidatorNode(url: string): Promise<number> {
+  const response = await ky(url, {
     timeout: 5000,
     retry: {
       limit: 3,

@@ -6,8 +6,8 @@ Each node type has a unique health check function that determines whether the no
 
 Currently, the health checker supports:
 
-- Sui RPC Node: `/sui/<SCHEME>/<RPC_NODE_ENDPOINT>`
-- Walrus Storage Node: `/walrus/<SCHEME>/<STORAGE_NODE_ENDPOINT>`
+- Sui RPC Node
+- Walrus Storage Node
 
 Additional services will be added in the near future:
 
@@ -19,16 +19,23 @@ Additional services will be added in the near future:
 ## Example Request
 
 ```
-curl -i https://check.mirai.cloud/sui/rpc/https/rpc-wnx-lax.testnet.sui.mirai.cloud
+curl -i -X POST 'https://check.mirai.cloud' -i \
+  -H "Content-Type: application/json" \
+  -d '{
+    "networkName": "sui",
+    "serviceName": "validator",
+    "url": "http://validator.mainnet.sui.mirai.cloud:9184/metrics"
+  }'
+
 HTTP/2 200
-date: Wed, 19 Mar 2025 04:26:34 GMT
+date: Wed, 19 Mar 2025 07:14:53 GMT
 content-type: text/plain; charset=UTF-8
 content-length: 2
-report-to: {"endpoints":[{"url":"https:\/\/a.nel.cloudflare.com\/report\/v4?s=Cf2XzrdtI6jzeBaooy7XBiCRZuuWYechx5AAf588A%2Ba60Nd0WiyCGQEoab%2BMr1dsh7lEmuCqDBqyDY9FKXDG8zcvKQSSulejhj3r%2FR9OUfRIQtaR%2F3BMHerowp4pQIOq6Vmx0eYo%2F7k8gyM7eJT7"}],"group":"cf-nel","max_age":604800}
+report-to: {"endpoints":[{"url":"https:\/\/a.nel.cloudflare.com\/report\/v4?s=eNCcg%2B6joTgIurTf21b%2FaGSDepb0VIV10eSgUIq64PVpAnaN1prv8mtL54LDvhGSkpYTfkzvmmKVFVelifmP%2FwHck0Lk9MqVZJPA4FtBmxUVxB%2BYASsUDcqatsyqfITjX%2BvGFDjCoIFoE9vOG6go"}],"group":"cf-nel","max_age":604800}
 nel: {"success_fraction":0,"report_to":"cf-nel","max_age":604800}
 server: cloudflare
-cf-ray: 922a36410896aff7-NRT
-server-timing: cfL4;desc="?proto=TCP&rtt=26090&min_rtt=24857&rtt_var=9346&sent=7&recv=10&lost=0&retrans=0&sent_bytes=2892&recv_bytes=608&delivery_rate=113937&cwnd=253&unsent_bytes=0&cid=6731031a181c9655&ts=5050&x=0"
+cf-ray: 922b2cc82c86d4fb-NRT
+server-timing: cfL4;desc="?proto=TCP&rtt=38087&min_rtt=29487&rtt_var=14737&sent=7&recv=10&lost=0&retrans=0&sent_bytes=2891&recv_bytes=728&delivery_rate=117176&cwnd=253&unsent_bytes=0&cid=30272d0e54abfd08&ts=5814&x=0"
 
 OK
 ```
