@@ -1,0 +1,15 @@
+{
+  "name": "miraicloud-health-checker",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy --minify"
+  },
+  "dependencies": {
+    "hono": "^4.7.4",
+    "ky": "^1.7.5"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250214.0",
+    "wrangler": "4"
+  }
+}
