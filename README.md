@@ -6,8 +6,8 @@ Each node type has a unique health check function that determines whether the no
 
 Currently, the health checker supports:
 
-- Sui RPC Node: https://check.mirai.cloud/sui/<SCHEME>/<RPC_NODE_ENDPOINT>
-- Walrus Storage Node: https://check.mirai.cloud/sui/<SCHEME>/<STORAGE_NODE_ENDPOINT>
+- Sui RPC Node: `https://check.mirai.cloud/sui/<SCHEME>/<RPC_NODE_ENDPOINT>`
+- Walrus Storage Node: `https://check.mirai.cloud/sui/<SCHEME>/<STORAGE_NODE_ENDPOINT>`
 
 Additional services will be added in the near future:
 
